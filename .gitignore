@@ -35,7 +35,9 @@ ENV/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb
+# Allow new analysis notebooks
+!notebooks/05_optimal_portfolios.ipynb
+!notebooks/07_tail_risk_analysis.ipynb
 
 # Data files (large NetCDF files)
 data/**/*.nc4

@@ -1,36 +1,70 @@
-# Agriculture Data Analysis
+# Crop Diversification as Risk Management (1981–2016)
 
-Анализ диверсификации сельскохозяйственных культур как инструмент управления рисками.
+## Motivation
+Climate variability increases volatility of crop yields, posing risks to food security.
+This project investigates whether crop diversification reduces systemic yield risk,
+globally and across vulnerable regions.
 
-## Описание
+## Research Questions
+- How correlated are yields of rice, maize, wheat, and soybean?
+- Does diversification reduce volatility compared to monocropping?
+- Do diversification benefits differ by region?
 
-Проект для анализа урожайности основных сельскохозяйственных культур (рис, кукуруза, пшеница, соя) за период 1981-2016 годов.
+## Data
+- The global dataset of historical yields for major crops 1981–2016 (https://doi.pangaea.de/10.1594/PANGAEA.909132)
+- Period: 1981–2016
+- Crops: rice, maize, wheat, soybean
 
-## Структура проекта
+## Methodology
+1. Stack yearly NetCDF files into spatio-temporal cubes
+2. Compute global and regional yield anomalies
+3. Standardize time series to compare volatility
+4. Build diversified crop portfolios
+5. Compare variance reduction across regions
+
+## Key Findings
+- Crop yields show moderate global correlation
+- Diversification reduces volatility globally
+- Benefits are region-specific and weaker in monoculture-dominated regions
+
+## Tools
+Python, xarray, pandas, matplotlib
+
+## Relevance
+This analysis shows that while global crop yields have increased steadily since 1981,
+inter-annual variability remains high and crop-specific.
+
+By constructing an equal-weighted crop portfolio, we demonstrate that diversification
+consistently reduces yield volatility both globally and regionally.
+
+These results suggest that crop diversification should be considered a core component
+of climate adaptation and food security strategies.
+
+## Project structure
 
 ```
 agriculture_data/
-├── data/              # NetCDF файлы с данными урожайности
+├── data/              # NetCDF files with yeield data
 │   ├── rice/
 │   ├── maize/
 │   ├── wheat/
 │   └── soybean/
-├── src/               # Исходный код
-│   ├── analysis.py           # Основной класс анализа
-│   ├── data_loader.py        # Загрузка данных
-│   ├── regional_masks.py     # Региональные маски
-│   └── xray_v.py             # Вспомогательные функции
+├── src/               # Source code
+│   ├── analysis.py           # Main analysis class
+│   ├── data_loader.py        # Data loading
+│   ├── regional_masks.py     # Regional masks
+│   └── xray_v.py             # Helper functions
 ├── notebooks/         # Jupyter notebooks
-└── main.py            # Основной скрипт запуска
+└── main.py            # Main script
 ```
 
-## Установка
+## Installation
 
 ```bash
 pip install xarray pandas matplotlib numpy
 ```
 
-## Использование
+## Usage
 
 ```python
 from src.analysis import CropDiversificationAnalysis
@@ -43,19 +77,18 @@ analysis = CropDiversificationAnalysis(
     soybean_path="./data/soybean"
 )
 
-# Региональный анализ
+# Regional analysis
 regional_results = analysis.run_regional_analysis(REGIONS)
 
-# Корреляционная матрица
+# Correlation matrix
 corr = analysis.correlation_matrix()
 
-# Волатильность
+# Volatility
 vol = analysis.volatility_summary()
 
-# Визуализация
+# Visualization
 analysis.plot_timeseries()
 ```
 
-## Лицензия
-
-[Укажите лицензию]
+## License
+MIT

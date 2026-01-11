@@ -219,3 +219,147 @@ class CropDiversificationAnalysis:
             results[name] = self.analyze_region(name, region)
     
         return results
+
+
+# ---------- tail risk analysis ----------
+
+    def value_at_risk(self, quantile=0.05):
+        """
+        Calculate Value at Risk (VaR) for individual crops and portfolio.
+        
+        VaR represents the threshold yield below which yields fall with
+        probability equal to the quantile (default 5%).
+        
+        Parameters
+        ----------
+        quantile : float
+            Quantile for VaR calculation (default 0.05 = 5th percentile)
+        
+        Returns
+        -------
+        dict
+            VaR values for each crop and portfolio
+        """
+        if self.portfolio is None:
+            self.compute_portfolio()
+        
+        return {
+            "rice_var": float(self.rice_z.quantile(quantile).values),
+            "maize_var": float(self.maize_z.quantile(quantile).values),
+            "wheat_var": float(self.wheat_z.quantile(quantile).values),
+            "soybean_var": float(self.soybean_z.quantile(quantile).values),
+            "portfolio_var": float(self.portfolio.quantile(quantile).values),
+        }
+    
+    def conditional_var(self, quantile=0.05):
+        """
+        Calculate Conditional Value at Risk (CVaR, also called Expected Shortfall).
+        
+        CVaR is the expected value conditional on being in the worst quantile%.
+        It captures tail risk better than VaR.
+        
+        Parameters
+        ----------
+        quantile : float
+            Quantile threshold (default 0.05 = worst 5%)
+        
+        Returns
+        -------
+        dict
+            CVaR values for each crop and portfolio
+        """
+        if self.portfolio is None:
+            self.compute_portfolio()
+        
+        # Calculate VaR thresholds
+        var_vals = self.value_at_risk(quantile)
+        
+        # CVaR = mean of values below VaR threshold
+        rice_cvar = float(self.rice_z.where(self.rice_z <= var_vals["rice_var"]).mean().values)
+        maize_cvar = float(self.maize_z.where(self.maize_z <= var_vals["maize_var"]).mean().values)
+        wheat_cvar = float(self.wheat_z.where(self.wheat_z <= var_vals["wheat_var"]).mean().values)
+        soybean_cvar = float(self.soybean_z.where(self.soybean_z <= var_vals["soybean_var"]).mean().values)
+        portfolio_cvar = float(self.portfolio.where(self.portfolio <= var_vals["portfolio_var"]).mean().values)
+        
+        return {
+            "rice_cvar": rice_cvar,
+            "maize_cvar": maize_cvar,
+            "wheat_cvar": wheat_cvar,
+            "soybean_cvar": soybean_cvar,
+            "portfolio_cvar": portfolio_cvar,
+        }
+    
+    def identify_extreme_events(self, threshold=-1.5):
+        """
+        Identify years with extreme negative yield shocks.
+        
+        Parameters
+        ----------
+        threshold : float
+            Z-score threshold for extreme events (default -1.5 std dev)
+        
+        Returns
+        -------
+        dict
+            Years where each crop experienced extreme events,
+            and years where ANY crop was extreme
+        """
+        if self.rice_z is None:
+            self.standardize_series()
+        
+        # Find years below threshold for each crop
+        rice_extreme = self.rice_z.where(self.rice_z < threshold, drop=True).time.values
+        maize_extreme = self.maize_z.where(self.maize_z < threshold, drop=True).time.values
+        wheat_extreme = self.wheat_z.where(self.wheat_z < threshold, drop=True).time.values
+        soybean_extreme = self.soybean_z.where(self.soybean_z < threshold, drop=True).time.values
+        
+        # Find years where at least one crop is extreme
+        all_extreme_years = set()
+        all_extreme_years.update(rice_extreme)
+        all_extreme_years.update(maize_extreme)
+        all_extreme_years.update(wheat_extreme)
+        all_extreme_years.update(soybean_extreme)
+        
+        return {
+            "rice_extreme_years": sorted([int(y) for y in rice_extreme]),
+            "maize_extreme_years": sorted([int(y) for y in maize_extreme]),
+            "wheat_extreme_years": sorted([int(y) for y in wheat_extreme]),
+            "soybean_extreme_years": sorted([int(y) for y in soybean_extreme]),
+            "any_crop_extreme_years": sorted([int(y) for y in all_extreme_years]),
+            "threshold": threshold
+        }
+    
+    def tail_risk_comparison(self):
+        """
+        Comprehensive comparison of tail risk metrics.
+        
+        Returns
+        -------
+        pd.DataFrame
+            Table comparing VaR and CVaR across crops and portfolio
+        """
+        if self.portfolio is None:
+            self.compute_portfolio()
+        
+        var_5 = self.value_at_risk(0.05)
+        cvar_5 = self.conditional_var(0.05)
+        
+        comparison = pd.DataFrame({
+            "Crop": ["Rice", "Maize", "Wheat", "Soybean", "Portfolio"],
+            "VaR (5%)": [
+                var_5["rice_var"],
+                var_5["maize_var"],
+                var_5["wheat_var"],
+                var_5["soybean_var"],
+                var_5["portfolio_var"]
+            ],
+            "CVaR (5%)": [
+                cvar_5["rice_cvar"],
+                cvar_5["maize_cvar"],
+                cvar_5["wheat_cvar"],
+                cvar_5["soybean_cvar"],
+                cvar_5["portfolio_cvar"]
+            ]
+        })
+        
+        return comparison
