@@ -363,3 +363,118 @@ class CropDiversificationAnalysis:
         })
         
         return comparison
+
+# ---------- time-varying correlation analysis (Enhancement 2) ----------
+
+    def rolling_correlation(self, window=10):
+        """
+        Compute rolling window correlations between all crop pairs.
+        
+        Parameters
+        ----------
+        window : int
+            Rolling window size in years (default 10)
+        
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame with rolling correlations for each crop pair
+        """
+        if self.df is None:
+            self.build_dataframe()
+        
+        crops = ['rice', 'maize', 'wheat', 'soybean']
+        pairs = []
+        for i, crop1 in enumerate(crops):
+            for crop2 in crops[i+1:]:
+                pairs.append((crop1, crop2))
+        
+        rolling_corrs = pd.DataFrame(index=self.df.index)
+        
+        for crop1, crop2 in pairs:
+            pair_name = f"{crop1}-{crop2}"
+            # Compute rolling correlation
+            rolling_corrs[pair_name] = self.df[crop1].rolling(window=window).corr(self.df[crop2])
+        
+        return rolling_corrs
+    
+    def decade_comparison(self):
+        """
+        Compare correlation and volatility statistics across decades.
+        
+        Returns
+        -------
+        dict
+            Dictionary with statistics for each decade
+        """
+        if self.df is None:
+            self.build_dataframe()
+        
+        decades = {
+            '1980s': (1981, 1989),
+            '1990s': (1990, 1999),
+            '2000s': (2000, 2009),
+            '2010s': (2010, 2016)
+        }
+        
+        results = {}
+        
+        for decade_name, (start, end) in decades.items():
+            # Filter data for this decade
+            mask = (self.df.index >= start) & (self.df.index <= end)
+            decade_df = self.df[mask]
+            
+            if len(decade_df) < 3:
+                continue
+            
+            # Compute correlation matrix
+            corr_matrix = decade_df[['rice', 'maize', 'wheat', 'soybean']].corr()
+            
+            # Get average pairwise correlation (upper triangle only)
+            crops = ['rice', 'maize', 'wheat', 'soybean']
+            pair_corrs = []
+            for i, crop1 in enumerate(crops):
+                for crop2 in crops[i+1:]:
+                    pair_corrs.append(corr_matrix.loc[crop1, crop2])
+            avg_correlation = sum(pair_corrs) / len(pair_corrs)
+            
+            # Compute portfolio volatility
+            portfolio = decade_df[['rice', 'maize', 'wheat', 'soybean']].mean(axis=1)
+            
+            results[decade_name] = {
+                'years': f"{start}-{end}",
+                'n_years': len(decade_df),
+                'avg_pairwise_correlation': float(avg_correlation),
+                'portfolio_volatility': float(portfolio.std()),
+                'individual_volatility': {
+                    crop: float(decade_df[crop].std()) for crop in crops
+                },
+                'correlation_matrix': corr_matrix
+            }
+        
+        return results
+    
+    def plot_rolling_correlations(self, window=10):
+        """
+        Plot rolling correlations over time.
+        
+        Parameters
+        ----------
+        window : int
+            Rolling window size in years (default 10)
+        """
+        rolling_corrs = self.rolling_correlation(window)
+        
+        plt.figure(figsize=(12, 6))
+        
+        for col in rolling_corrs.columns:
+            plt.plot(rolling_corrs.index, rolling_corrs[col], label=col, linewidth=2)
+        
+        plt.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+        plt.xlabel('Year')
+        plt.ylabel('Correlation')
+        plt.title(f'Rolling {window}-Year Correlations Between Crop Yields')
+        plt.legend(loc='best')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
