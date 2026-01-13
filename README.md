@@ -11,6 +11,14 @@ Climate variability increases the volatility of crop yields, posing significant 
 5. **Temporal Dynamics:** Are crop correlations changing over time due to climate change?
 6. **Tail Risk:** How well does diversification reduce exposure to extreme yield failures (VaR / CVaR)?
 
+## Key Findings
+
+> **Correlation Trends:** Contrary to expectations of rising climate-induced synchronization analysis shows that **crop correlations have decreased** from the 1980s (avg 0.83) to the 2010s (avg 0.51). This suggests that diversification opportunities may actually be **improving**.
+
+- **Global Volatility:** Diversification significantly reduces systemic risk compared to monoculture.
+- **Optimal Allocation:** Optimization can further reduce risk by 10-15% compared to simple equal-weighting.
+- **Tail Risk:** Diversified portfolios offer superior protection against 1-in-20 year extreme yield failures.
+
 ## Data
 - **Source:** Global dataset of historical yields for major crops (1981–2016) [PANGAEA Data](https://doi.pangaea.de/10.1594/PANGAEA.909132)
 - **Period:** 1981–2016
@@ -39,7 +47,7 @@ Where:
 ### 2. Modern Portfolio Theory (MPT)
 Method used in **`src.portfolio_optimization.PortfolioOptimizer`** and **`notebooks/05_optimal_portfolios.ipynb`**.
 
-We apply Markowitz's Modern Portfolio Theory to agriculture. Instead of financial assets, we treat crops as assets in a portfolio to minimize yield volatility (risk).
+I apply Markowitz's Modern Portfolio Theory to agriculture. Instead of financial assets, I treat crops as assets in a portfolio to minimize yield volatility (risk).
 
 **Objective Functions:**
 
@@ -62,7 +70,7 @@ Standard deviation assumes normal distribution, but agricultural risks often hav
 
 *   **Value at Risk (VaR):** The threshold loss level that will not be exceeded with $(1-\alpha)$ confidence.
     $$P(Z_p \le VaR_{\alpha}) = \alpha$$
-    *Example:* VaR(5%) = -1.5 means that, over the specified time horizon, 95% of yield outcomes are above −1.5 standard deviations, while 5% fall below this threshold.
+    *Example:* VaR(5%) = −1.5 means that, over the specified time horizon, 95% of yield outcomes are above −1.5 standard deviations, while 5% fall below this threshold.
 
 *   **Conditional Value at Risk (CVaR / Expected Shortfall):** The average loss *given* that an extreme event has occurred.
     $$CVaR_{\alpha} = E[Z_p | Z_p \le VaR_{\alpha}]$$
@@ -71,7 +79,7 @@ Standard deviation assumes normal distribution, but agricultural risks often hav
 ### 4. Interpretation of Correlation Dynamics
 Method used in **`src.analysis.CropDiversificationAnalysis.rolling_correlation`** and **`notebooks/06_temporal_dynamics.ipynb`**.
 
-We employ rolling window analysis to test the hypothesis that climate change is synchronizing crop failures.
+I employ rolling window analysis to test the hypothesis that climate change is synchronizing crop failures.
 
 **Model:**
 $$\rho_{t} = \text{Corr}(Z_{i, \tau}, Z_{j, \tau}) \quad \text{for } \tau \in [t-w, t]$$
@@ -125,15 +133,6 @@ Implements Modern Portfolio Theory algorithms using `scipy.optimize`.
 **05_optimal_portfolios.ipynb:** Uses MPT to find scientifically optimal crop mixes that outperform equal weighting. 
 **06_temporal_dynamics.ipynb:** Investigates how crop correlations evolve over time. Includes rolling window analysis.
 **07_tail_risk_analysis.ipynb:** Focuses on extreme events using Value at Risk (VaR) and Expected Shortfall (CVaR).
-
-## Key Findings
-
-> [!IMPORTANT]
-> **Correlation Trends:** Contrary to expectations of rising climate-induced synchronization, our analysis shows that **crop correlations have decreased** from the 1980s (avg 0.83) to the 2010s (avg 0.51). This suggests that diversification opportunities may actually be **improving**.
-
-- **Global Volatility:** Diversification significantly reduces systemic risk compared to monoculture.
-- **Optimal Allocation:** Optimization can further reduce risk by 10-15% compared to simple equal-weighting.
-- **Tail Risk:** Diversified portfolios offer superior protection against 1-in-20 year extreme yield failures.
 
 ## Installation & Usage
 
