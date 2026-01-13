@@ -38,22 +38,16 @@ def load_crop_folder(
 
         da = ds[var_name]
 
-        # Replace fill values with NaN
         fill = da.attrs.get("_FillValue")
         if fill is not None:
             da = da.where(da != fill)
 
-        # Add time coordinate
         da = da.expand_dims(time=[year])
 
         datasets.append(da)
 
     combined = xr.concat(datasets, dim="time")
-
-    # Rename variable for clarity
     combined = combined.rename(new_name)
-
-    # Ensure consistent dtype
     combined = combined.astype("float32")
 
     return combined

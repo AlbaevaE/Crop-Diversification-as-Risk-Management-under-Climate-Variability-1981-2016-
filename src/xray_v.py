@@ -15,11 +15,8 @@ class MaizeYieldDataset:
         self.end_year = end_year
         self.years = list(range(start_year, end_year + 1))
 
-        self.ds = None  # сюда загрузим xarray Dataset
+        self.ds = None  
 
-    # -------------------------
-    # 1. Загрузка данных
-    # -------------------------
     def load(self):
         """
         Загружает все nc4 файлы и объединяет их в 3D Dataset
@@ -32,14 +29,11 @@ class MaizeYieldDataset:
             concat_dim="time"
         )
 
-        # Назначаем координату времени (годы)
         self.ds = self.ds.assign_coords(time=self.years)
 
         return self.ds
 
-    # -------------------------
-    # 2. Очистка данных
-    # -------------------------
+
     def clean(self):
         """
         Заменяет FillValue на NaN
@@ -55,9 +49,7 @@ class MaizeYieldDataset:
 
         return self.ds
 
-    # -------------------------
-    # 3. Sanity checks
-    # -------------------------
+
     def summary(self):
         """
         Быстрая проверка данных
@@ -74,9 +66,7 @@ class MaizeYieldDataset:
             "nan_percent": float(np.isnan(self.ds["var"]).mean() * 100),
         }
 
-    # -------------------------
-    # 4. Аналитические методы
-    # -------------------------
+
     def global_mean_by_year(self):
         """
         Средняя урожайность по миру для каждого года
@@ -98,9 +88,7 @@ class MaizeYieldDataset:
             - self.ds["var"].sel(time=year_start)
         )
 
-    # -------------------------
-    # 5. Экспорт
-    # -------------------------
+
     def to_dataframe(self):
         """
         Осторожно: большой DataFrame (~250k * years)

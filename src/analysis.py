@@ -13,8 +13,6 @@ class CropDiversificationAnalysis:
 
     def __init__(self, rice_path, maize_path, wheat_path, soybean_path, var_name="var"):
         self.var_name = var_name
-
-        # load_crop_folder returns DataArray with name "yield", not Dataset
         self.rice = load_crop_folder(rice_path, var_name=var_name)
         self.maize = load_crop_folder(maize_path, var_name=var_name)
         self.wheat = load_crop_folder(wheat_path, var_name=var_name)

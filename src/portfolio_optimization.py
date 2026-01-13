@@ -75,46 +75,48 @@ class PortfolioOptimizer:
             'optimization_result': result
         }
     
-    def maximum_sharpe_weights(self, risk_free_rate=0.0):
+    def maximum_sortino_weights(self, risk_free_rate=0.0, target_return=0.0):
         """
-        Calculate maximum Sharpe ratio portfolio weights.
+        Calculate maximum Sortino ratio portfolio weights.
         
-        Solves: max (μ'w - rf) / sqrt(w'Σw) subject to Σw = 1, w ≥ 0
+        Solves: max (μ'w - rf) / DownsideDeviation(w) subject to Σw = 1, w ≥ 0
         
         Parameters
         ----------
         risk_free_rate : float
             Risk-free rate (default 0 for yield analysis)
+        target_return : float
+            Target return for downside deviation calculation (default 0)
         
         Returns
         -------
         dict
-            Optimal weights, Sharpe ratio, volatility, and return
+            Optimal weights, Sortino ratio, volatility, and return
         """
-        # Objective function: negative Sharpe ratio (minimize negative = maximize positive)
-        def neg_sharpe_ratio(weights):
+        # Calculate downside deviation
+        def downside_deviation(weights):
+            portfolio_returns = self.returns_df @ weights
+            downside_returns = portfolio_returns[portfolio_returns < target_return] - target_return
+            if len(downside_returns) == 0:
+                return 1e-6 # Avoid division by zero
+            return np.sqrt(np.mean(downside_returns**2))
+
+        # Objective function: negative Sortino ratio (minimize negative = maximize positive)
+        def neg_sortino_ratio(weights):
             portfolio_return = weights @ self.mean_returns
-            portfolio_vol = np.sqrt(weights @ self.cov_matrix @ weights)
-            
-            # Avoid division by zero
-            if portfolio_vol == 0:
+            start_dev = downside_deviation(weights)
+            if start_dev == 0:
                 return 1e10
             
-            sharpe = (portfolio_return - risk_free_rate) / portfolio_vol
-            return -sharpe  # Negative because we minimize
+            sortino = (portfolio_return - risk_free_rate) / start_dev
+            return -sortino
         
-        # Constraints: weights sum to 1
         constraints = {'type': 'eq', 'fun': lambda w: np.sum(w) - 1}
-        
-        # Bounds: weights between 0 and 1
         bounds = tuple((0, 1) for _ in range(self.n_assets))
-        
-        # Initial guess: equal weights
         initial_weights = np.array([1/self.n_assets] * self.n_assets)
         
-        # Optimize
         result = minimize(
-            neg_sharpe_ratio,
+            neg_sortino_ratio,
             initial_weights,
             method='SLSQP',
             bounds=bounds,
@@ -127,11 +129,13 @@ class PortfolioOptimizer:
         weights = result.x
         portfolio_return = weights @ self.mean_returns
         portfolio_vol = np.sqrt(weights @ self.cov_matrix @ weights)
-        sharpe = (portfolio_return - risk_free_rate) / portfolio_vol
+        
+        downside_dev = downside_deviation(weights)
+        sortino = (portfolio_return - risk_free_rate) / downside_dev if downside_dev > 0 else 0
         
         return {
             'weights': pd.Series(weights, index=self.returns_df.columns),
-            'sharpe_ratio': sharpe,
+            'sortino_ratio': sortino,
             'volatility': portfolio_vol,
             'return': portfolio_return,
             'optimization_result': result
@@ -154,7 +158,7 @@ class PortfolioOptimizer:
         pd.DataFrame
             Frontier with columns: return, volatility, weights
         """
-        # Range of target returns
+        
         min_return = self.mean_returns.min()
         max_return = self.mean_returns.max()
         target_returns = np.linspace(min_return, max_return, n_points)
@@ -164,7 +168,6 @@ class PortfolioOptimizer:
         
         for target_return in target_returns:
             try:
-                # Minimize variance subject to target return
                 def portfolio_variance(weights):
                     return weights @ self.cov_matrix @ weights
                 
@@ -201,43 +204,38 @@ class PortfolioOptimizer:
             'volatility': frontier_vols
         })
         
-        # Add weights as separate columns
         for i, crop in enumerate(self.returns_df.columns):
             frontier_df[f'weight_{crop}'] = [w[i] for w in frontier_weights]
         
-        # Remove NaN results
         frontier_df = frontier_df.dropna()
         
         return frontier_df
     
     def compare_strategies(self):
         """
-        Compare equal-weighted, min-variance, and max-Sharpe portfolios.
+        Compare equal-weighted, min-variance, and max-Sortino portfolios.
         
         Returns
         -------
         pd.DataFrame
             Comparison table with volatility and return for each strategy
         """
-        # Equal-weighted portfolio
+        
         equal_weights = np.array([1/self.n_assets] * self.n_assets)
         equal_return = equal_weights @ self.mean_returns
         equal_vol = np.sqrt(equal_weights @ self.cov_matrix @ equal_weights)
         
-        # Min-variance portfolio
         min_var = self.minimum_variance_weights()
-        
-        # Max-Sharpe portfolio
-        max_sharpe = self.maximum_sharpe_weights()
+        max_sortino = self.maximum_sortino_weights()
         
         comparison = pd.DataFrame({
-            'Strategy': ['Equal-Weighted', 'Minimum Variance', 'Maximum Sharpe'],
-            'Return': [equal_return, min_var['return'], max_sharpe['return']],
-            'Volatility': [equal_vol, min_var['volatility'], max_sharpe['volatility']],
-            'Sharpe Ratio': [
-                equal_return / equal_vol if equal_vol > 0 else 0,
-                min_var['return'] / min_var['volatility'] if min_var['volatility'] > 0 else 0,
-                max_sharpe['sharpe_ratio']
+            'Strategy': ['Equal-Weighted', 'Minimum Variance', 'Maximum Sortino'],
+            'Return': [equal_return, min_var['return'], max_sortino['return']],
+            'Volatility': [equal_vol, min_var['volatility'], max_sortino['volatility']],
+            'Sortino Ratio': [
+                np.nan, 
+                np.nan,
+                max_sortino['sortino_ratio']
             ]
         })
         

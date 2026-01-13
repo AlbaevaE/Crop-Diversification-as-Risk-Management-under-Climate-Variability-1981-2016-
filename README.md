@@ -9,7 +9,7 @@ Climate variability increases the volatility of crop yields, posing significant 
 3. **Regional Differences:** Do diversification benefits vary by geography?
 4. **Optimization:** Can we construct optimal crop portfolios that minimize risk or maximize stability?
 5. **Temporal Dynamics:** Are crop correlations changing over time due to climate change?
-6. **Tail Risk:** How well does diversification protect against extreme yield failures (Value at Risk)?
+6. **Tail Risk:** How well does diversification reduce exposure to extreme yield failures (VaR / CVaR)?
 
 ## Data
 - **Source:** Global dataset of historical yields for major crops (1981–2016) [PANGAEA Data](https://doi.pangaea.de/10.1594/PANGAEA.909132)
@@ -22,6 +22,8 @@ Climate variability increases the volatility of crop yields, posing significant 
 This project employs advanced statistical and econometric models to quantify risk and diversification benefits.
 
 ### 1. Standardization (Z-Scores)
+Method used in **`src.analysis.CropDiversificationAnalysis.standardize_series`** and **`notebooks/01_data_exploration.ipynb`**.
+
 To make yields comparable across different crops and regions, all yield data is standardized into "yield anomalies" (Z-scores). This removes the unit differences (tonnes/hectare) and isolates the volatility signal.
 
 **Formula:**
@@ -35,32 +37,40 @@ Where:
 **Logic:** A Z-score of -2.0 indicates a severe failure (2 standard deviations below normal), regardless of whether it's Rice or Wheat.
 
 ### 2. Modern Portfolio Theory (MPT)
+Method used in **`src.portfolio_optimization.PortfolioOptimizer`** and **`notebooks/05_optimal_portfolios.ipynb`**.
+
 We apply Markowitz's Modern Portfolio Theory to agriculture. Instead of financial assets, we treat crops as assets in a portfolio to minimize yield volatility (risk).
 
 **Objective Functions:**
 
 *   **Minimum Variance Portfolio:** Finds the crop weights ($w$) that minimize total portfolio volatility.
+    *   Function: `minimum_variance_weights()`
     $$\min \sigma_p^2 = w^T \Sigma w$$
     Subject to: $\sum w_i = 1, w_i \ge 0$ (no short selling)
 
-*   **Maximum Sharpe Ratio:** Finds the "efficiency" sweet spot—maximizing yield stability per unit of risk.
-    $$\max S_p = \frac{R_p - R_f}{\sigma_p}$$
-    Where $R_p$ is expected return (mean yield anomaly) and $R_f$ is the risk-free rate (assumed 0).
+*   **Maximum Sortino Ratio:** Finds the "efficiency" sweet spot—maximizing yield stability per unit of downside risk.
+    *   Function: `maximum_sortino_weights()`
+    $$\max S_p = \frac{R_p - R_f}{\sigma_{d}}$$
+    Where $R_p$ is expected return (mean yield anomaly), $R_f$ is the risk-free rate (assumed 0), and $\sigma_{d}$ is the downside deviation.
 
 **Analysis:** This allows us to move beyond simple "equal diversification" to scientifically optimal crop planting strategies.
 
 ### 3. Tail Risk Analysis (VaR & CVaR)
-Standard deviation assumes normal distribution, but agricultural risks often have "fat tails" (extreme failure events). We use downside risk metrics to measure protection against disasters.
+Method used in **`src.analysis.CropDiversificationAnalysis`** (`value_at_risk`, `conditional_var`) and **`notebooks/07_tail_risk_analysis.ipynb`**.
+
+Standard deviation assumes normal distribution, but agricultural risks often have "fat tails" (extreme failure events). I use downside risk metrics to measure protection against disasters.
 
 *   **Value at Risk (VaR):** The threshold loss level that will not be exceeded with $(1-\alpha)$ confidence.
     $$P(Z_p \le VaR_{\alpha}) = \alpha$$
-    *Example:* VaR(5%) = -1.5 means there is a 5% chance yields will be worse than -1.5 SD.
+    *Example:* VaR(5%) = -1.5 means that, over the specified time horizon, 95% of yield outcomes are above −1.5 standard deviations, while 5% fall below this threshold.
 
 *   **Conditional Value at Risk (CVaR / Expected Shortfall):** The average loss *given* that an extreme event has occurred.
     $$CVaR_{\alpha} = E[Z_p | Z_p \le VaR_{\alpha}]$$
     *Logic:* "If a 1-in-20 year disaster happens, how bad will it be on average?"
 
 ### 4. Interpretation of Correlation Dynamics
+Method used in **`src.analysis.CropDiversificationAnalysis.rolling_correlation`** and **`notebooks/06_temporal_dynamics.ipynb`**.
+
 We employ rolling window analysis to test the hypothesis that climate change is synchronizing crop failures.
 
 **Model:**
@@ -104,7 +114,7 @@ The primary class for handling yield data.
 ### `src.portfolio_optimization.PortfolioOptimizer`
 Implements Modern Portfolio Theory algorithms using `scipy.optimize`.
 - **Efficient Frontier:** Generates the curve of optimal risk-return portfolios.
-- **Optimization:** Solves quadratic programming problems for Min Variance and Max Sharpe ratios.
+- **Optimization:** Solves quadratic programming problems for Min Variance and Max Sortino ratios.
 
 ## Analysis Notebooks
 
