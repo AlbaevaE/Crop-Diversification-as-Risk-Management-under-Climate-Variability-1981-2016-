@@ -13,11 +13,23 @@ Climate variability increases the volatility of crop yields, posing significant 
 
 ## Key Findings
 
-> **Correlation Trends:** Contrary to expectations of rising climate-induced synchronization analysis shows that **crop correlations have decreased** from the 1980s (avg 0.83) to the 2010s (avg 0.51). This suggests that diversification opportunities may actually be **improving**.
+### 1. Tail Risk Protection
+Diversification significantly mitigates extreme downside risk.
+*   **Value at Risk (VaR 95%)**: The diversified portfolio's VaR is **-1.31** standard deviations, which is **23% less severe** than the worst-performing single crop (Soybean at -1.70).
+*   **Conditional VaR (CVaR 95%)**: The expected shortfall during extreme events is **-1.93** for the portfolio, substantially better than Wheat's **-2.55**.
+*   *Source: [`PortfolioOptimizer.value_at_risk`](src/portfolio_optimization.py) and [`notebooks/07_tail_risk_analysis.ipynb`](notebooks/07_tail_risk_analysis.ipynb)*
 
-- **Global Volatility:** Diversification significantly reduces systemic risk compared to monoculture.
-- **Optimal Allocation:** Optimization can further reduce risk by 10-15% compared to simple equal-weighting.
-- **Tail Risk:** Diversified portfolios offer superior protection against 1-in-20 year extreme yield failures.
+### 2. Optimization converges to Diversification
+Advanced optimization strategies reinforce the value of simple diversification for this dataset.
+*   The **Maximum Sortino Ratio** optimization converges to an **Equal-Weighted strategy** (approx. 25% allocation to each crop).
+*   This suggests that given the standardized nature of yield anomalies, equal exposure provides a robust barrier against downside volatility without over-fitting to historical winners.
+*   *Source: [`PortfolioOptimizer.maximum_sortino_weights`](src/portfolio_optimization.py) and [`notebooks/05_optimal_portfolios.ipynb`](notebooks/05_optimal_portfolios.ipynb)*
+
+### 3. Temporal Dynamics & Correlation
+Contrary to the assumption that systemic climate risk always increases correlations, yield correlations have shown a decreasing trend in this specific dataset.
+*   **Average Pairwise Correlation**: Decreased from **0.83** in the 1980s to **0.51** in the 2010s.
+*   **Portfolio Volatility**: Correspondingly dropped from **0.55** (1980s) to **0.26** (2010s), indicating that the benefits of diversification have potentially **strengthened** over time.
+*   *Source: [`CropDiversificationAnalysis.decade_comparison`](src/analysis.py) and [`notebooks/06_temporal_dynamics.ipynb`](notebooks/06_temporal_dynamics.ipynb)*
 
 ## Data
 - **Source:** Global dataset of historical yields for major crops (1981–2016) [PANGAEA Data](https://doi.pangaea.de/10.1594/PANGAEA.909132)
